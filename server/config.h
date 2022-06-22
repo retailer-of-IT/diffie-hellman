@@ -11,6 +11,6 @@
 const int Port = 8888;
 const char server_ip[] = "127.0.0.1";
 const int max_buff = 1024;
-pthread_mutex_t g_mutext;
+// pthread_mutex_t g_mutext;
 
 #endif
