@@ -17,7 +17,7 @@ SockClient::SockClient()
 
 }
 
-void SockClient::param_init(const char* ip)
+void SockClient::param_init(char* ip)
 {
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);//初始化socket
     if(sock_fd == -1)

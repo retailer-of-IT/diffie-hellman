@@ -16,7 +16,7 @@ class SockClient
     char buf[1024], sendbuf[1024], recvbuf[1024];
     struct sockaddr_in server_addr;
     SockClient();
-    void param_init(const char* ip);
+    void param_init(char* ip);
     void client_connect();
     void client_communicate();
 };
