@@ -70,6 +70,7 @@ void SockServer::server_communicate()
      {
         //accpet
         new_fd = accept(sock_fd, (struct sockaddr *)&client_addr, &sin_size);
+        printf("accept\n");
         pdata.client_addr = client_addr;
         pdata.sock_fd = new_fd;
         pthread_create(&pt, NULL, serveForClient, (void *)&pdata);

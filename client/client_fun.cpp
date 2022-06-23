@@ -29,6 +29,7 @@ void SockClient::param_init(char* ip)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(Port);
     server_addr.sin_addr.s_addr = inet_addr(ip);
+    printf("init success\n");
 }
 
 void SockClient::client_connect()
@@ -39,6 +40,7 @@ void SockClient::client_connect()
         printf("%s\n",strerror(errno));
         exit(2);
     }
+    printf("connect success\n");
 }
 
 void SockClient::client_communicate()
