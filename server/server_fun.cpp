@@ -6,8 +6,10 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
+#include <openssl/bn.h>
 #include "server_fun.h"
 #include "config.h"
+#include"diffiehellman_work.h"
 
 void *serveForClient(void *arg)
 {
@@ -15,6 +17,7 @@ void *serveForClient(void *arg)
     int new_fd = pdata->sock_fd;
     char recvbuf[max_buff];
     char sendbuf[max_buff] = "recv successfully.\n";
+
     while(true)
     {
         recv(new_fd, recvbuf, sizeof(recvbuf), 0);
@@ -70,10 +73,48 @@ void SockServer::server_communicate()
      {
         //accpet
         new_fd = accept(sock_fd, (struct sockaddr *)&client_addr, &sin_size);
+        diffie_hellman_server(new_fd);
         pdata.client_addr = client_addr;
         pdata.sock_fd = new_fd;
         pthread_create(&pt, NULL, serveForClient, (void *)&pdata);
     }
     close(new_fd);
     close(sock_fd);
+}
+
+void SockServer::diffie_hellman_server(int client_fd)
+{
+    char recvbuf[max_buff];
+    char sendbuf[max_buff];
+    memset(recvbuf, 0, sizeof(recvbuf));
+    recv(client_fd,recvbuf,strlen(recvbuf),0);
+    BIGNUM *P = BN_new();
+    BN_dec2bn(&P,recvbuf);
+    char *pp = NULL;
+    pp = BN_bn2dec(P);
+    printf("%s",pp);
+    BN_copy(server_key_info.P,P);
+    memset(recvbuf, 0, sizeof(recvbuf));
+    recv(client_fd,recvbuf,strlen(recvbuf),0);
+    BIGNUM *client_public_key = BN_new();
+    BN_dec2bn(&client_public_key,recvbuf);
+    char *qq = NULL;
+    qq = BN_bn2dec(client_public_key);
+    printf("%s",qq);
+    server_key_info.get_private_key();
+    server_key_info.get_public_key();
+    char *server_public_key = NULL;
+    server_public_key = BN_bn2dec(server_key_info.public_key);
+    memset(sendbuf, 0, sizeof(sendbuf));
+    strcpy(sendbuf,server_public_key);
+    send(client_fd,sendbuf,strlen(sendbuf),0);
+    server_key_info.get_Key(client_public_key);
+    char *Key = NULL;
+    Key = BN_bn2dec(server_key_info.Key);
+    printf("%s",Key);
+    OPENSSL_free(Key);
+    OPENSSL_free(pp);
+    OPENSSL_free(qq);
+    OPENSSL_free(server_public_key);
+    OPENSSL_free(P);
 }

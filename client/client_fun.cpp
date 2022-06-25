@@ -9,8 +9,10 @@
 #include<string.h>
 #include<errno.h>
 #include <arpa/inet.h>
+#include <openssl/bn.h>
 #include "client_fun.h"
 #include "config.h"
+#include"diffiehellman_work.h"
 
 SockClient::SockClient()
 {
@@ -45,6 +47,7 @@ void SockClient::client_connect()
 
 void SockClient::client_communicate()
 {
+    diffie_hellman_client();
     while(true){
         fgets(sendbuf, sizeof(sendbuf), stdin);
         send(sock_fd, sendbuf, strlen(sendbuf), 0);
@@ -57,4 +60,32 @@ void SockClient::client_communicate()
     }
     close(sock_fd);
     return;
+}
+
+void SockClient::diffie_hellman_client()
+{
+    client_key_info.get_p(512);
+    char *P  = NULL;
+    P = BN_bn2dec(client_key_info.P);
+    strcpy(sendbuf,P);
+    send(sock_fd,sendbuf,strlen(sendbuf),0);
+    memset(sendbuf, 0, sizeof(sendbuf));
+    client_key_info.get_private_key();
+    client_key_info.get_public_key();
+    char *client_public_key = NULL;
+    client_public_key = BN_bn2dec(client_key_info.public_key);
+    strcpy(sendbuf,client_public_key);
+    send(sock_fd,sendbuf,strlen(sendbuf),0);
+    memset(sendbuf, 0, sizeof(sendbuf));
+    recv(sock_fd,recvbuf,strlen(recvbuf),0);
+    printf("%s",recvbuf);
+    BIGNUM *server_public_key = BN_new();
+    BN_dec2bn(&server_public_key,recvbuf); //TODO2
+    client_key_info.get_Key(server_public_key);
+    char *Key = NULL;
+    Key = BN_bn2dec(client_key_info.Key);
+    printf("%s",Key);
+    OPENSSL_free(Key);
+    OPENSSL_free(P);
+    OPENSSL_free(client_public_key);
 }
