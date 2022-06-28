@@ -1,17 +1,3 @@
-/*
-* @Author: Sun
-* @Date:   2020-06-29 14:47:50
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 23:10:30
-*/
-
-// 预共享密钥改进 防御中间人攻击
-
-// D-H过程
-// 客户端建立连接，计算并发送素数p、原根g、x=g^a mod p
-// 服务端接收到p、g、x，生成b并计算y=g^b mod p，将y返回，同时计算出密钥key=x^b mod p
-// 客户端收到y，计算出key=y^a mod p
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -40,7 +26,7 @@ typedef struct aes_arg
     unsigned char aes_key[32];
 } aes_arg;
 
-unsigned char PRE_KEY[] = "A716FD492A6A435388E9F961A794988B";    // 预共享密钥...这个其实应该是预先以某种安全的方式在CS之间传输的但是这里就先略过了...
+unsigned char PRE_KEY[] = "A716FD492A6A435388E9F961A794988B";    // 预共享密钥
 
 // 生成长度为num的随机字符串
 void generate_rand_str(unsigned char *str, int num)
@@ -362,9 +348,6 @@ int main(int argc, char *argv[])
     unsigned char *aes_tag = (unsigned char *) malloc(sizeof(unsigned char) * 16);
     // generate_rand_str(aes_tag, 16);
     memset(aes_tag, '\0', 16);
-    // key(256-bit)
-    // mp_int aes_key;
-    // mp_init(&aes_key);
 
     unsigned char buf[512];
     generate_client_key(sockfd, aes_key);    // 生成key
@@ -373,8 +356,8 @@ int main(int argc, char *argv[])
     BIO_dump_fp(stdout, aes_key, 32);    // 输出32字节的密钥
     printf("\n初始向量:\n");
     BIO_dump_fp(stdout, aes_iv, 32);
-    // printf("\n附加验证数据:\n");
-    // BIO_dump_fp(stdout, aes_tag, 16);
+    printf("\n附加验证数据:\n");
+    BIO_dump_fp(stdout, aes_tag, 16);
     // 发送iv和tag
     sleep(1);
     send(sockfd, aes_iv, 32, 0);

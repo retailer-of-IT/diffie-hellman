@@ -1,21 +1,3 @@
-/*
-* @Author: Sun
-* @Date:   2020-06-29 14:47:23
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 22:41:22
-*/
-
-// 预共享密钥改进 防御中间人攻击
-// 使用PSK时server和client必须配置相同的密钥
-// server发送一个随机字符串到客户端
-// 客户端接受该字符串根据密钥对其进行一些操作(如hash)然后发送回server
-// server进行一次相同的操作 如果结果和客户端的相同就允许客户端连接
-
-// D-H过程
-// 客户端建立连接，计算并发送素数p、原根g、x=g^a mod p
-// 服务端接收到p、g、x，生成b并计算y=g^b mod p，将y返回，同时计算出密钥key=x^b mod p
-// 客户端收到y，计算出key=y^a mod p
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>

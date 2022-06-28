@@ -1,11 +1,4 @@
-/*
-* @Author: Sun
-* @Date: 2020-07-08 20:22:54
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 21:53:01
-*/
-
-// md5实现
+// md5实现，参考代码
 
 #include <stdio.h>
 #include <stdlib.h>
