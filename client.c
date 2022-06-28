@@ -1,15 +1,3 @@
-/*
-* @Author: Sun
-* @Date:   2020-06-29 14:45:49
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 20:36:32
-*/
-
-// D-H过程
-// 客户端建立连接，计算并发送素数p、原根g、x=g^a mod p
-// 服务端接收到p、g、x，生成b并计算y=g^b mod p，将y返回，同时计算出密钥key=x^b mod p
-// 客户端收到y，计算出key=y^a mod p
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -47,7 +35,7 @@ void generate_rand_str(unsigned char *str, int num)
     }
 }
 
-// 找原根
+// 找出原根
 void find_primitive_root(mp_int *p, mp_int *primitive_root)
 {
     // 原根检测
@@ -92,7 +80,7 @@ void find_primitive_root(mp_int *p, mp_int *primitive_root)
     mp_clear_multi(&p1, &p2, &temp, NULL);    // 释放
 }
 
-// 生成素数p、找到本原根
+// 生成素数p、找到原根
 void generate_p(int sockfd, mp_int *p, mp_int *primitive_root)
 {
     srand(time(NULL));
@@ -100,18 +88,15 @@ void generate_p(int sockfd, mp_int *p, mp_int *primitive_root)
     char buffer[BUFFER_SIZE];
     mp_toradix(p, buffer, 10);    // 计算p以r为基的表示法并把数位存在数组str中并以字符串形式输出到屏幕上
     // printf("\n素数: %s\n", buffer);
-    printf("\n 6 \n");
     sleep(1);
     send(sockfd, buffer, strlen(buffer) + 1, 0);    // p发过去
     //
     find_primitive_root(p, primitive_root);
     mp_toradix(primitive_root, buffer, 10);
-    printf("\n 7 \n");
-    // printf("\n原根: %s\n", buffer);
+    printf("\n原根: %s\n", buffer);
     sleep(1);
     send(sockfd, buffer, strlen(buffer) + 1, 0);    // 原根g发过去
     sleep(1);
-    printf("\n 8 \n");
 }
 
 // 生成客户端密钥
@@ -124,7 +109,6 @@ void generate_client_key(int sockfd, unsigned char *aes_key)
     mp_int primitive_root;    // 原根
     mp_init(&primitive_root);
     mp_set(&primitive_root, 2);
-    printf("\n 5 \n");
     generate_p(sockfd, &p, &primitive_root);    // 生成素数p、找到原根g并发送给客户端
 
     mp_int b;    // 客户端的私钥b
@@ -136,14 +120,11 @@ void generate_client_key(int sockfd, unsigned char *aes_key)
 
     char buffer[BUFFER_SIZE];
     mp_toradix(&y, buffer, 10);
-    sleep(1);
     send(sockfd, buffer, strlen(buffer) + 1, 0);    // 发送y
-    printf("\n 9 \n");
     /*-----------------------------------*/
     // 接收服务器的x,key=x^b mod p
     sleep(1);
     recv(sockfd, buffer, BUFFER_SIZE, 0);
-    printf("\n 10 \n");
     mp_int x;
     mp_init(&x);
     mp_read_radix(&x, buffer, 10);
@@ -165,6 +146,7 @@ void generate_client_key(int sockfd, unsigned char *aes_key)
         aes_key[i] = buffer[2 * i] * 16 + buffer[2 * i + 1];
 }
 
+//接收消息，这里单向不用
 // void recv_message(aes_arg *arg)
 // {
 //     int sock = arg->sockfd;
@@ -188,7 +170,6 @@ void generate_client_key(int sockfd, unsigned char *aes_key)
 //             close(arg->sockfd);
 //             return;
 //         }
-
 //         // printf("recv_n: %d\n", recv_n);
 //         recv_buffer[recv_n] = '\0';
 //         unsigned int iv_len = 32;
@@ -200,7 +181,6 @@ void generate_client_key(int sockfd, unsigned char *aes_key)
 //         unsigned char cipher_text[256] = {0};
 //         unsigned char tag[16] = {0};
 //         unsigned char iv[32] = {0};
-
 //         memcpy(iv, recv_buffer, iv_len);
 //         memcpy(cipher_text, recv_buffer + iv_len, ct_len);
 //         memcpy(tag, recv_buffer + recv_n - tag_len, tag_len);
@@ -229,7 +209,7 @@ int send_message(aes_arg *arg)
     unsigned char tag[16] = {0};
     printf("\n");
     scanf("%s", plain_text);
-    // fgets(plain_text, 255, stdin);
+    //客户端输入quit退出
     if (strcmp(plain_text, "quit") == 0)
     {
         return 1;
@@ -237,6 +217,7 @@ int send_message(aes_arg *arg)
     unsigned int pt_len = strlen(plain_text);
     unsigned int iv_len = 32;
     unsigned int tag_len = 16;
+    //加密
     encrypt(arg->aes_key, plain_text, pt_len, cipher_text, arg->aes_iv, iv_len, tag, tag_len);
     memcpy(cipher_text + pt_len, tag, tag_len);
     
@@ -247,11 +228,12 @@ int send_message(aes_arg *arg)
     printf("\ncipher_text: \n");
     BIO_dump_fp(stdout, cipher_text, pt_len + tag_len);
 
-    // [iv][ct|tag]
+    // [iv][ct|tag]发送给服务端用于AES解密
     memcpy(send_buffer, arg->aes_iv, iv_len);
     memcpy(send_buffer + iv_len, cipher_text, pt_len + tag_len);
     send_buffer[iv_len + pt_len + tag_len] = '\0';
     printf("\nsendbuffer:\n");
+    //打印16进制数据，附加其ASCLL
     BIO_dump_fp(stdout, send_buffer, iv_len + pt_len + tag_len);
     printf("\n----------------------------------------------\n");
 
@@ -284,7 +266,6 @@ int main(int argc, char *argv[])
     client_addr.sin_family = AF_INET;
     client_addr.sin_port = 0;	// 任意端口
     // 绑定	这里客户端之所以要绑定IP是因为放在了一台机器里模拟
-    // kali里添加了多张网卡 为了后面中间人攻击区别 所以客户端也绑定一下
     if (bind(sockfd, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0)
     {
         perror("Error ");
@@ -304,41 +285,34 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    // 进行身份检测
+    // 进行身份检测,这里不用
 
     // key
     unsigned char *aes_key = (unsigned char *) malloc(sizeof(unsigned char) * 32);
     // 生成iv(32字节)
     unsigned char *aes_iv = (unsigned char *) malloc(sizeof(unsigned char) * 32);
-    printf("\n 1 \n");
     generate_rand_str(aes_iv, 32);
     // tag(tag)
     unsigned char *aes_tag = (unsigned char *) malloc(sizeof(unsigned char) * 16);
     // generate_rand_str(aes_tag, 16);
-    memset(aes_tag, '\0', 16);
+    memset(aes_tag, '\0', 16);//随机生成，这里可以用memset赋予全\0，作为GMAC认证码tag，初始化
     // key(256-bit)
-    // mp_int aes_key;
-    // mp_init(&aes_key);
-    printf("\n 2 \n");
     unsigned char buf[512];
     generate_client_key(sockfd, aes_key);    // 生成key
-    printf("\n 3 \n");
     printf("\n密钥:\n");
     // mp_toradix(&aes_key,buf,16);
     BIO_dump_fp(stdout, aes_key, 32);    // 输出32字节的密钥
     printf("\n初始向量:\n");
     BIO_dump_fp(stdout, aes_iv, 32);
-    // printf("\n附加验证数据:\n");
-    // BIO_dump_fp(stdout, aes_tag, 16);
+    printf("\n附加验证数据:\n");
+    BIO_dump_fp(stdout, aes_tag, 16);
     // 发送iv和tag
     sleep(1);
     send(sockfd, aes_iv, 32, 0);
     sleep(1);
     send(sockfd, aes_tag, 16, 0);
-    printf("\n 4 \n");
     aes_arg arg;
     arg.sockfd = sockfd;
-    // mp_init_copy(&arg.aes_key, &aes_key);
     memcpy(arg.aes_key, aes_key, 32);
     memcpy(arg.aes_iv, aes_iv, 32);
     memcpy(arg.aes_tag, aes_tag, 16);
