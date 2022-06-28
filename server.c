@@ -1,15 +1,3 @@
-/*
-* @Author: Sun
-* @Date:   2020-06-29 14:46:39
-* @Last Modified by:   Sun
-* @Last Modified time: 2020-07-08 20:36:39
-*/
-
-// D-H过程
-// 客户端建立连接，计算并发送素数p、原根g、x=g^a mod p
-// 服务端接收到p、g、x，生成b并计算y=g^b mod p，将y返回，同时计算出密钥key=x^b mod p
-// 客户端收到y，计算出key=y^a mod p
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -67,7 +55,6 @@ void recv_message(aes_arg *arg)
         recv_buffer[recv_n] = '\0';
         unsigned int iv_len = 32;
         unsigned int tag_len = 16;
-        // unsigned int ct_len=recv_n-iv_len;
         unsigned int ct_len = recv_n - iv_len - tag_len;
         unsigned char plain_text[256] = {0};
         // unsigned char cipher_text[256+tag_len]={0};
@@ -145,21 +132,18 @@ void generate_server_key(int sockfd, unsigned char *aes_key)
     char buffer[BUFFER_SIZE] = {0};
     // 接收p
     recv(sockfd, buffer, BUFFER_SIZE, 0);
-    printf("\n 1 \n");
     // printf("%s\n", buffer);
     mp_int p;
     mp_init(&p);
     mp_read_radix(&p, buffer, 10);
     // 接收g
     recv(sockfd, buffer, BUFFER_SIZE, 0);
-    printf("\n 2 \n");
     // printf("%s\n", buffer);
     mp_int g;
     mp_init(&g);
     mp_read_radix(&g, buffer, 10);
     // 接收y
     recv(sockfd, buffer, BUFFER_SIZE, 0);
-    printf("\n 3 \n");
     mp_int y;
     mp_init(&y);
     mp_read_radix(&y, buffer, 10);
@@ -179,8 +163,8 @@ void generate_server_key(int sockfd, unsigned char *aes_key)
     mp_int key;
     mp_init(&key);
     mp_exptmod(&y, &a, &p, &key);
-    mp_toradix(&key, buffer, 16);
-    // printf("\nkey: %s\n", buffer);
+    mp_toradix(&key, buffer, 16);//转16进制
+    printf("\nkey: %s\n", buffer);
     // 填充aes_key
     int i = 0;
     for (i = 0; i < 64; ++i)
@@ -190,7 +174,7 @@ void generate_server_key(int sockfd, unsigned char *aes_key)
         if (buffer[i] >= '1' && buffer[i] <= '9')
             buffer[i] = buffer[i] - 48;    // 0-9
     }
-    for (i = 0; i < 32; ++i)    // 十六进制 0xXX
+    for (i = 0; i < 32; ++i)    // 生成十六进制 0xXX，填充到32个字节
         aes_key[i] = buffer[2 * i] * 16 + buffer[2 * i + 1];
 }
 
@@ -198,14 +182,7 @@ void generate_server_key(int sockfd, unsigned char *aes_key)
 void *ex_message(aes_arg *arg)
 {
     printf("新线程建立...\n");
-    // while(1)
-    // {
     recv_message(arg);
-    // int ret=send_message(arg);
-    // if(ret==-1)
-    // break;
-    // }
-    // close(arg->sockfd);
     return NULL;
 }
 
@@ -246,8 +223,6 @@ int main(int argc, char *argv[])
         unsigned char aes_tag[16];
         unsigned char aes_key[32];
         unsigned char buf[512];
-        // mp_int aes_key;
-        // mp_init(&aes_key);
         struct sockaddr_in client_addr;    // 保存客户端addr
         socklen_t client_addr_len = sizeof(client_addr);
         if ((client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_addr, &client_addr_len)) < 0)
@@ -257,7 +232,6 @@ int main(int argc, char *argv[])
         }
         printf("客户端 %s:%d 连接成功\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
         generate_server_key(client_sockfd, aes_key);
-        printf("\n 4 \n");
         // BIO_dump_fp(stdout, buf, 32);
         // 接收客户端发送的iv
         recv(client_sockfd, aes_iv, sizeof(aes_iv), 0);
@@ -267,13 +241,12 @@ int main(int argc, char *argv[])
         BIO_dump_fp(stdout, aes_key, 32);    // 输出32字节的密钥
         printf("\n初始向量:\n");
         BIO_dump_fp(stdout, aes_iv, 32);
-        // printf("\n附加验证数据:\n");
-        // BIO_dump_fp(stdout, aes_tag, 16);
+        printf("\n附加验证数据:\n");
+        BIO_dump_fp(stdout, aes_tag, 16);
 
         struct aes_arg for_thread;    // 子线程中用的变量
         for_thread.sockfd = client_sockfd;
         for_thread.client_addr = client_addr;
-        // mp_init_copy(&for_thread.aes_key, &aes_key);
         memcpy(for_thread.aes_key, aes_key, sizeof(aes_key));
         memcpy(for_thread.aes_iv, aes_iv, sizeof(aes_iv));
         memcpy(for_thread.aes_tag, aes_tag, sizeof(aes_tag));
